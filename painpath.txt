@@ -1,0 +1,519 @@
+//============================================================
+//= Path of Pain Instance Raid Dungeon
+//===== By: ==================================================
+//= Jae
+//= Dar
+//===== Version: =============================================
+//= 0.1    
+//===== Description: =========================================
+//= Various Raid Parties take different paths to get to the
+//= final boss of the dungeon.
+//===== Comments: ============================================
+//= 0.1 - Trial version. Declaring various npcs needed
+//============================================================
+
+
+// Registration NPC
+//------------------------------------------------------------
+prontera,152,173,4	script	Mr. Pain#pront	630,{																		// Registration NPC for the 'paths'
+	set .@party_id,getcharid(1);
+	set .@md_name$,"Path of Pain Raid";
+	
+	mes "[^0000FFMr. Pain^000000]";
+	mes "Do you want to enter the ^ff0000Path of Pain^000000 Raid Dungeon?";
+	next;
+		if (!.@party_id) {																								// Check if char is in party
+		mes "[^0000FFMr. Pain^000000]";
+		mes "Well, well, well, aren't you being too rash?";
+		mes "Why don't you at least organize a party?";
+		close;
+		}
+		set .@playtime, checkquest(666666,PLAYTIME);																	// Check quest number 666666 << quest id needed on questdb
+		if (getcharid(0) == getpartyleader(.@party_id,2)) {
+			if (.@playtime == 0 || .@playtime == 1) {																	// if Player has received quest but not completed
+				mes "[^0000FFMr. Pain^000000]";
+				mes "...Are you sure you're not doing too much?";
+				mes "I think you'd better get some rest.";
+				mes "You'll only wear yourself out by trying to do too much";
+				close;
+			} else if (.@playtime == 2) {																				// if Player has completed quest, erasequest
+				mes "[^0000FFMr. Pain^000000]";
+				mes "Great, great.";
+				mes "You have successfully completed the raid.";
+				erasequest 666666;
+			} else {																									// if Player doesnt have quest meaning he can proceed
+				mes "[^0000FFMr. Pain^000000]";
+				mes "You human adventurers are incredible.";
+				mes "You're always going into the cave, where no one else dares to go.";
+				next;
+				mes "[^0000FFMr. Pain^000000]";
+				mes "You'll get permission";
+				mes "after you register.";
+				mes "Are you going to venture into the Payon Cave Raid?";
+				next;
+				switch(select("^0000ffParticipate in Path of Pain Raid^000000:Give up.")) {								// Registration Choices
+					case 1:																								// Register
+						mes "[^0000FFMr. Pain^000000]";
+						mes "Party Name: "+getpartyname(.@party_id)+"...";
+						mes "Party Leader: "+strcharinfo(0)+"...";
+						if (instance_create(.@md_name$) < 0) {															// if instance is not yet created
+							mes "Hmm...";
+							next;
+							mes "[^0000FFMr. Pain^000000]";
+							if (.@playtime == -1)
+								mes "It's dangerous inside.";
+							else
+								mes "The atmosphere is somewhat tense inside.";
+							mes "...Why don't you just go back today?";
+							close;
+						}
+						mes "I've got it. I've written them down on the report here.";									// if instance is successfully created
+						next;
+						mes "[^0000FFMr. Pain^000000]";
+						mes "Now go to the ^000066Cave Tunnel^000000, the only way to get into the ^FF0000Path of Pain^000000 Raid.";
+						mes "Good luck!";
+						close;
+					case 2:																									// Give up option
+						mes "[^0000FFMr. Pain^000000]";
+						mes "Well, you've made the right decision.";
+						if (.@playtime == -1)
+							mes "That's what's good for you.";
+						close;
+				}
+			}
+		}
+		else {
+			mes "[^0000FFMr. Pain^000000]";																				// PT leader check
+			mes "Where's your party leader?";
+			mes "It's dangerous in there.";
+			next;
+			if (.@playtime == 2) {																						// another erasequest just in case
+				mes "[^0000FFMr. Pain^000000]";
+				mes "I see you've been into the raid before.";
+				erasequest 666666;
+				next;
+			}
+			mes "[^0000FFMr. Pain^000000]";
+			mes "Let me meet the representative of your party.";
+			mes "I have to discuss some things with him/her.";
+			close;
+		}
+}
+
+
+
+//------------------------------------------------------------
+prontera,159,173,4	script	Raid Portal	723,{																			// Just normal portal for entrance
+	mes "The darkness creeps out of the entrance of the cave.";
+	mes "It looks like I can enter the cave through the tunnel.";
+	next;
+	if(select("Enter the tunnel.:Give up.") == 2)
+		close;
+	if(raidprogress == 4 && checkquest(666666,PLAYTIME) == 0) warp quiz_02,148,379;
+	switch(instance_enter("Path of Pain Raid")) {																		// Need to register this on instance db
+		case 3:																											// cannot enter instance
+			mes "[^0000FFMr. Pain^000000]";
+			mes "Something doesn't feel right. Looks like something dangerous is going on, so you'd better turn back today.";
+			close;
+		case 2:																											// cannot enter instance
+			mes "You try to crawl inside, but some mysterious power pushes you back with a gush of wind.";
+			mes "It seems like you can't force your way into the cave.";
+			close;
+		case 1:
+			mes "[^0000FFMr. Pain^000000]";
+			mes "Hey, look!";
+			mes "Are you going alone?";
+			mes "That's impossible. Too rash.";
+			mes "Team up with some friends and go together!";
+			close;
+		case 0:																											// successfully enter instance
+			if (checkquest(666666,PLAYTIME) == 2) erasequest 666666;
+			if (checkquest(666666,PLAYTIME) == -1) setquest 666666;
+			mapannounce "prontera",getpartyname(getcharid(1))+" party's "+strcharinfo(0)+" member is entering the Path of Pain Raid!",bc_map,"0x00ff99"; //FW_NORMAL 12 0 0
+			set raidprogress,0;
+			//warp "mapname",x,y;																						// no need if instance coords is indicated on instancedb
+			close;
+		default:
+			mes "You cannot enter because it is dangerous.";
+			close;
+	}
+}
+
+
+
+// NPC warper inside instance
+//------------------------------------------------------------
+ordeal_1-1,149,149,4	script	Mr. Pain#ordeal	630,{
+	
+	mes "[^0000FFMr. Pain^000000]";
+	mes "Welcome to your death.";
+	mes "I'll warp you to your destination.";
+	next;
+	if (raidprogress == 0) callsub L_Warp,.path1;													// warps player depending on seal unlocking progress
+	if (raidprogress == 1) callsub L_Warp,.path2;
+	if (raidprogress == 2) callsub L_Warp,.path3;
+	if (raidprogress == 3) {
+		set raidprogress,4;
+		callsub L_Warp,9;
+	}
+	close;
+
+L_Warp:
+	switch(getarg(0)){
+		case 1:
+			mes "got here";
+			warp strnpcinfo(4),149,204; break;
+		case 2:
+			warp strnpcinfo(4),109,188; break;
+		case 3:
+			warp strnpcinfo(4),189,189; break;
+		case 4:
+			warp strnpcinfo(4),95,150; break;
+		case 5:
+			warp strnpcinfo(4),204,150; break;
+		case 6:
+			warp strnpcinfo(4),110,110; break;
+		case 7:
+			warp strnpcinfo(4),188,111; break;
+		case 8:
+			warp strnpcinfo(4),149,94; break;
+		case 9:
+			warp "quiz_02",148,379; break;
+	}
+	end;
+	
+OnInstanceInit:
+		set .path1, rand(1,8);																								// On instance creation do these commands
+		set .path2, rand(1,8);																								// path is determined on instance creation
+		if (.path2 == .path1) {																								// randomization mechanic, no same path.
+			set .path2, (.path2+rand(1,8))%2;
+		}
+		set .path3, rand(1,8);
+		if (.path3 == .path1 || .path3 == .path2) {
+			set .path3, (.path3+rand(1,8))%2;
+		}
+end;																																										
+}																										
+					
+
+// Various Paths
+// -----------------------------------------------------------																					
+ordeal_1-1,149,273,4	script	Path of Fire	725,{
+
+	mes "[Path of Fire]";
+	callfunc "WarpControl",.clear;
+				
+OnFireDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Fire")+"::OnFireDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1;
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Fire Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",1,instance_npcname("Path of Fire")+"::OnFireDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+ordeal_1-1,54,245,4	script	Path of Water	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+			
+OnWaterDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Water")+"::OnWaterDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1;
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Water Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",2,instance_npcname("Path of Water")+"::OnWaterDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+ordeal_1-1,246,246,3	script	Path of Wind	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+	
+OnWindDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Wind")+"::OnWindDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1;
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Wind Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",3,instance_npcname("Path of Wind")+"::OnWindDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+ordeal_1-1,25,149,3	script	Path of Earth	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+	
+OnEarthDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Earth")+"::OnEarthDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1;
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Earth Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",4,instance_npcname("Path of Earth")+"::OnEarthDead";
+	end;
+}
+
+
+// -----------------------------------------------------------
+ordeal_1-1,273,149,3	script	Path of Shadow	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+	
+OnShadowDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Shadow")+"::OnShadowDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1; 
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Shadow Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",5,instance_npcname("Path of Shadow")+"::OnShadowDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+ordeal_1-1,54,54,3	script	Path of Ghost	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+	
+OnGhostDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Ghost")+"::OnGhostDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1; 
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Ghost Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",6,instance_npcname("Path of Ghost")+"::OnGhostDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+ordeal_1-1,245,52,3	script	Path of Holy	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+	
+OnHolyDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Path of Holy")+"::OnHolyDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1; 
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Holy Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",7,instance_npcname("Path of Holy")+"::OnHolyDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+ordeal_1-1,150,26,3	script	Hidden Path	725,{
+
+	mes "[Path of Water]";
+	callfunc "WarpControl",.clear;
+	
+OnHiddenDead:
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@mob_dead_num,mobcount(.@map$,instance_npcname("Hidden Path")+"::OnHiddenDead");
+	if (.@mob_dead_num < 1) {
+		set .clear, 1; 
+	} else {
+		mapannounce .@map$, "Remaining Monsters on the Hidden Path - "+.@mob_dead_num,bc_map,"0x00ff99";
+	}
+	end;																										
+
+OnInstanceInit:
+	set .clear,0;																												// reset clear progress on instance start
+	// Summons mobs on paths																									// Mobs should be custom to avoid item drop abuse
+	callfunc "RaidMobControl",8,instance_npcname("Hidden Path")+"::OnHiddenDead";
+	end;
+}
+
+
+
+// -----------------------------------------------------------
+function	script	WarpControl	{
+		if(getarg(0) > 1) {
+			mes "Please continue clearing the monsters around.";
+			close;
+		} else {
+			mes "Good job. Please proceed to the next ordeal.";
+			next;
+			set raidprogress, raidprogress+1;
+			warp strnpcinfo(4),150,141;
+			close;
+		}
+}
+
+
+
+// -----------------------------------------------------------
+function	script	RaidMobControl	{
+
+	set .@path, getarg(0);
+	set .@map$, instance_mapname("ordeal_1-1");
+	set .@label$, getarg(1);
+	
+	switch(.@path){
+	case 1:   // Path 1 - Fire
+		monster .@map$,149,209,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,149,209,"Blazer",1367,20,.@label$,2;			// example only
+		monster .@map$,149,209,"Boitata",2067,5,.@label$,2;
+		monster .@map$,149,266,"Eddga",1115,5,.@label$,2;
+		monster .@map$,149,243,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,149,266,"Ifrit",1832,2,.@label$,2;
+		break;
+	
+	case 2:   // Path of Water
+		monster .@map$,103,195,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,103,195,"Blazer",1367,20,.@label$,2;
+		monster .@map$,103,195,"Boitata",2067,5,.@label$,2;
+		monster .@map$,61,238,"Eddga",1115,5,.@label$,2;
+		monster .@map$,81,218,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,61,238,"Ifrit",1832,2,.@label$,2;
+		break;
+		
+	case 3:   // Path of Wind
+		monster .@map$,195,193,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,195,193,"Blazer",1367,20,.@label$,2;
+		monster .@map$,222,222,"Boitata",2067,5,.@label$,2;
+		monster .@map$,222,222,"Eddga",1115,5,.@label$,2;
+		monster .@map$,237,238,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,237,238,"Ifrit",1832,2,.@label$,2;
+		break;
+	
+	case 4:   // Path of Earth
+		monster .@map$,85,149,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,85,149,"Blazer",1367,20,.@label$,2;
+		monster .@map$,59,149,"Boitata",2067,5,.@label$,2;
+		monster .@map$,59,149,"Eddga",1115,5,.@label$,2;
+		monster .@map$,36,149,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,36,149,"Ifrit",1832,2,.@label$,2;
+		break;
+	case 5:   // Path of Shadow
+		monster .@map$,215,149,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,215,149,"Blazer",1367,20,.@label$,2;
+		monster .@map$,243,149,"Boitata",2067,5,.@label$,2;
+		monster .@map$,243,149,"Eddga",1115,5,.@label$,2;
+		monster .@map$,261,149,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,261,149,"Ifrit",1832,2,.@label$,2;
+		break;
+	case 6:   // Path of Ghost
+		monster .@map$,103,102,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,103,102,"Blazer",1367,20,.@label$,2;
+		monster .@map$,79,79,"Boitata",2067,5,.@label$,2;
+		monster .@map$,79,79,"Eddga",1115,5,.@label$,2;
+		monster .@map$,62,64,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,62,64,"Ifrit",1832,2,.@label$,2;
+		break;
+	case 7:   // Path of Holy
+		monster .@map$,196,103,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,196,103,"Blazer",1367,20,.@label$,2;
+		monster .@map$,221,78,"Boitata",2067,5,.@label$,2;
+		monster .@map$,221,78,"Eddga",1115,5,.@label$,2;
+		monster .@map$,238,61,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,238,61,"Ifrit",1832,2,.@label$,2;
+		break;
+	case 8:   // Hidden Path
+		monster .@map$,150,83,"Magmaring",1836,20,.@label$,2;
+		monster .@map$,150,83,"Blazer",1367,20,.@label$,2;
+		monster .@map$,150,57,"Boitata",2067,5,.@label$,2;
+		monster .@map$,150,57,"Eddga",1115,5,.@label$,2;
+		monster .@map$,150,41,"Ifrit",1832,2,.@label$,2;
+		monster .@map$,150,41,"Ifrit",1832,2,.@label$,2;
+		break;
+	}
+end;
+}
+
+
+-	script	PainPathInit	-1,{
+
+//OnMon0800:																													// Time that Path of Pain is enabled
+	enablenpc "Mr. Pain#pront";
+	enablenpc "Raid Portal";																									
+	monster "quiz_02",146,381,"Final Boss",1832,1,OnFinalDead,2;																// same time as npcs are enabled, spawn final boss on final room
+	
+//OnInit:			//sample
+//	disablenpc "Mr. Pain#pront";																								// disable npc for registration and portal
+//	disablenpc "Raid Portal";
+
+OnFinalDead:
+	mapannounce "quiz_02", "Final Boss Has Dieded",bc_map;
+	enablenpc "Reward NPC";																										// enable reward npc when boss dies
+	end;
+}
+
+
+// RESETTER
+// -----------------------------------------------------------
+prontera,159,167,3	script	RaidReset	471,{
+	if(checkquest(666666) > -1) erasequest 666666;
+	if(instance_id() == 20) instance_destroy 20;
+	end;
+}
